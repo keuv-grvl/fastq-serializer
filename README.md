@@ -1,5 +1,7 @@
 # Intro
 
+[![Join the chat at https://gitter.im/fastq-serializer/Lobby](https://badges.gitter.im/fastq-serializer/Lobby.svg)](https://gitter.im/fastq-serializer/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [Fastq](https://en.wikipedia.org/wiki/FASTQ_format) files are widely used in bioinformatics to store raw sequencing data.
 One fastq entry contains information about sequencing machine, nucleotides (A, T, C, G or N) and
 [sequencing quality](https://en.wikipedia.org/wiki/Phred_quality_score).
