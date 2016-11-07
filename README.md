@@ -25,7 +25,7 @@ Further development in bioinformatics may require such infrastructure, so we nee
 
 # Run the project
 
-First, install Maven3.
+First, you will need Git, Java and Maven. This project was set up with Git 2.7.4, Java 1.8 and Maven 3.3.9.
 
 Then,
 ``` bash
