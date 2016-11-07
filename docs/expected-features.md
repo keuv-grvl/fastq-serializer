@@ -128,22 +128,22 @@ DESCRIPTION
       --output    <file.fqrdd>  Output file (default: <file.fqrdd>)
 
     export
-      --input     <file.fastq>  Input file (mandatory)
-      --output    <file.fqrdd>  Output file (default: -)
+      --input     <file.fqrdd>  Input file (mandatory)
+      --output    <file.fastq>  Output file (default: -)
 
     count
-      --input     <file.fastq>  Input file (mandatory)
+      --input     <file.fqrdd>  Input file (mandatory)
       --output      <file.tsv>  Output file (default: -)
 
       --entries                 Total number of entries
-      --nucleotides              Total umber of nucleotide
+      --nucleotides             Total umber of nucleotide
       --nucl          <string>  Number of nucleotide {a,t,g,c,n} and any
                                 combinason. Default: atgcn
       --all                     All of the above
 
     quality
-      --input     <file.fastq>  Input file (mandatory)
-      --output    <file.fqrdd>  Output file (default: -)
+      --input     <file.fqrdd>  Input file (mandatory)
+      --output      <file.tsv>  Output file (default: -)
 
       --length                  Print length per distlength
       --dist-lenght             Print length distribution
@@ -153,8 +153,8 @@ DESCRIPTION
       --dist-per-position       Print quality distribution per position
 
     trim
-      --input     <file.fastq>  Input file (mandatory)
-      --output    <file.fqrdd>  Output file (default: <file.fqrdd>)
+      --input   <infile.fqrdd>  Input file (mandatory)
+      --output <outfile.fqrdd>  Output file (default: <file.trim.fqrdd>)
 
       --leading          <int>  Remove leading bases while quality is less than <int>
       --trailing         <int>  Remove trailing bases while quality is less than <int>
@@ -162,8 +162,8 @@ DESCRIPTION
       --min-qual         <int>  Minimum mean quality in the sliding window.
 
     filter
-      --input     <file.fastq>  Input file (mandatory)
-      --output    <file.fqrdd>  Output file (default: <file.fqrdd>)
+      --input   <infile.fqrdd>  Input file (mandatory)
+      --output <outfile.fqrdd>  Output file (default: <file.filter.fqrdd>)
 
       --by-id     <idfile.txt>  Keep entries when ID is in idfile.txt
       --min-length       <int>  Keep entries when length is at least <int>
@@ -173,8 +173,8 @@ DESCRIPTION
       --only-atgc               Keep entries when only ATGC are present
 
     sample
-      --input     <file.fastq>  Input file (mandatory)
-      --output    <file.fqrdd>  Output file (default: <file.fqrdd>)
+      --input   <infile.fqrdd>  Input file (mandatory)
+      --output <outfile.fqrdd>  Output file (default: <file.sample.fqrdd>)
 
       --number           <int>  Select <int> entries
       --seed             <int>  Random seed
