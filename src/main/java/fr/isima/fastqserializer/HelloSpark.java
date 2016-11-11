@@ -1,5 +1,7 @@
 package fr.isima.fastqserializer;
 
+import java.io.IOException;
+
 import org.apache.spark.api.java.*;
 import org.apache.spark.*;
 
@@ -7,7 +9,7 @@ public class HelloSpark {
 
 	public static void main(String[] args) {
 		System.out.println("Hello World!");
-
+		
 		SparkConf conf = new SparkConf().setAppName("Simple Application").setMaster("local[2]");
 		JavaSparkContext sc = new JavaSparkContext(conf);
 		
@@ -15,8 +17,22 @@ public class HelloSpark {
 		
 		System.out.println(sc.appName());
 		
-		sc.close();
 		
+		
+		//System.out.println("Goodbye.");
+		String filePath = "./data/SP1.fq";
+		FastqFileManager fqman = new FastqFileManager();
+		
+		try {
+			//fqman.readFastqFile(filePath);
+			fqman.serializeFastqFile(sc,filePath);
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		sc.close();
 		System.out.println("Goodbye.");
+		
 	}
 }
