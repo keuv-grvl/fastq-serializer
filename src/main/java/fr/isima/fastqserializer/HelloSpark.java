@@ -25,7 +25,8 @@ public class HelloSpark {
 		
 		try {
 			//fqman.readFastqFile(filePath);
-			fqman.serializeFastqFile(sc,filePath);
+			//fqman.convertFastqToFqrdd(sc,filePath);
+			fqman.getFqSatistics(sc,filePath);
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
