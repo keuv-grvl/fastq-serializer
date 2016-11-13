@@ -70,7 +70,7 @@ public class FastqFileManager implements Serializable{
 
 		System.out.println("Exportation");
 		// si le dossier existe déjà, il lance une erreur
-		fastqRDD.saveAsTextFile("./results/SP1.fqrdd");
+		fastqRDD.saveAsObjectFile("./results/SP1.fqrdd");
 		//fastqRDD.saveAsObjectFile("./results/temp/SP1.fqrdd");
 	}
 	
@@ -159,6 +159,26 @@ public class FastqFileManager implements Serializable{
 			}
 		});
 		
+	}
+	
+	public void readFqRDD(JavaSparkContext sc,String filepath)throws IOException {
+		JavaRDD<FastqRecord> fqrdd = sc.objectFile(filepath);
+		
+		JavaRDD<String> sequences = fqrdd.flatMap(new FlatMapFunction<FastqRecord, String>(){
+			public Iterator<String> call(FastqRecord r) {
+				List<String> list = Arrays.asList( r.getReadString().split(" "));
+				Iterable<String> iter = list;
+				return iter.iterator();   // Recupération des séquences
+			}
+		});
+		
+		System.out.println("------------------------------");
+		System.out.println("Sequences and length");
+		sequences.foreach(new VoidFunction<String>(){
+			public void call(String s){
+				System.out.println(s+ " : " + s.length());
+			}
+		});
 	}
 
 }

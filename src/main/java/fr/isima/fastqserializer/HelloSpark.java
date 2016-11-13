@@ -24,9 +24,10 @@ public class HelloSpark {
 		FastqFileManager fqman = new FastqFileManager();
 		
 		try {
-			fqman.readFastqFile(filePath);
+			//fqman.readFastqFile(filePath);
 			//fqman.convertFastqToFqrdd(sc,filePath);
-			//fqman.getFqSatistics(sc,filePath);
+			//	fqman.getFqSatistics(sc,filePath);
+			fqman.readFqRDD(sc,"./results/SP1.fqrdd/part-00000");
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
