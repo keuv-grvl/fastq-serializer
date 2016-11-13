@@ -16,6 +16,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.api.java.function.VoidFunction;
@@ -137,13 +138,26 @@ public class FastqFileManager implements Serializable{
 			}
 		} );
 		
+		System.out.println("------------------------------");
+		System.out.println("Sequences and length");
+		sequences.foreach(new VoidFunction<String>(){
+			public void call(String s){
+				System.out.println(s+ " : " + s.length());
+			}
+		});
+	}
+	
+	
+	public void filterFqRdd(JavaSparkContext sc, String filepath) throws IOException{
+		List<FastqRecord> fastqArray = getFqArray(filepath);
+		JavaRDD<FastqRecord> fqrdd = sc.parallelize(fastqArray);
 		
-		
-		
-		
-		
-		
-		
+		// EXEMPLE: Filtre par rapport à la longueur de la séquence par exemple
+		JavaRDD<FastqRecord> fltrRes = fqrdd.filter(new Function<FastqRecord,Boolean> (){
+			public Boolean call (FastqRecord fq ){
+				return fq.getReadString().length() > 10;  
+			}
+		});
 		
 	}
 
