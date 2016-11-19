@@ -21,13 +21,15 @@ public class HelloSpark {
 		
 		//System.out.println("Goodbye.");
 		String filePath = "./data/SP1.fq";
+		String folderPath = "./results/SP1.fqrdd";
 		FastqFileManager fqman = new FastqFileManager();
 		
 		try {
 			//fqman.readFastqFile(filePath);
 			//fqman.convertFastqToFqrdd(sc,filePath);
-			//	fqman.getFqSatistics(sc,filePath);
-			fqman.readFqRDD(sc,"./results/SP1.fqrdd/part-00000");
+			fqman.getFqRDDSatistics(sc,folderPath);
+			//fqman.readFqRDD(sc,"./results/SP1.fqrdd/part-00000");
+			
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
