@@ -46,7 +46,7 @@ java -jar target/fastqserializer-*-jar-with-dependencies.jar
 - [Checking and manipulating FASTQ files](http://homer.salk.edu/homer/basicTutorial/fastqFiles.html)
 - [BioJava](https://github.com/biojava/biojava)
 - [FastQC](http://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-- [Trimmomatic](www.usadellab.org/cms/?page=trimmomatic)
+- [Trimmomatic](http://www.usadellab.org/cms/?page=trimmomatic)
 
 ## Spark-related
 
