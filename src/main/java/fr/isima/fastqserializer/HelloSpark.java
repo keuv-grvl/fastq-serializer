@@ -13,7 +13,7 @@ public class HelloSpark {
 	public static void main(String[] args) {
 		System.out.println("Hello World!");
 		
-		SparkConf conf = new SparkConf().setAppName("Simple Application").setMaster("local[2]")
+		SparkConf conf = new SparkConf().setAppName("Simple Application").setMaster("local[20]")
 				.set("spark.driver.maxResultSize", "0")
 				.set("spark.rdd.compress", "true")
 				.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
@@ -35,8 +35,9 @@ public class HelloSpark {
 		try {
 			//fqman.readFastqFile(filePath);
 			//fqman.convertFastqToFqrdd(sc,filePath,resultPath);
-			fqman.getFqRDDSatistics(sc,folderPath);
+			//fqman.getFqRDDSatistics(sc,folderPath);
 			//fqman.readFqRDD(sc,"./results/SP1.fqrdd/part-00000");
+			fqman.trimFqRdd(sc, folderPath, 15000, 5);
 			
 		} 
 		catch (IOException e) {

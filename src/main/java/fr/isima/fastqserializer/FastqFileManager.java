@@ -30,13 +30,14 @@ import scala.Tuple2;
 public class FastqFileManager implements Serializable{
 	
 	private int getSequenceQuality(FastqRecord fqrecord){
+		
+		return getStringQuality(fqrecord.getBaseQualityString());
+	}
+	
+	private int getStringQuality(String qualityString){
 		int res = 0;
-		
-		String[] nucleos = fqrecord.getReadString().split("");
-		String[] qualities = fqrecord.getBaseQualityString().split("");
-		
-		for(int i = 0; i < fqrecord.length(); i++){
-			res += getQualityValue(qualities[i].charAt(0));
+		for(int i = 0; i < qualityString.length(); i++){
+			res += getQualityValue(qualityString.charAt(i));
 		}
 		return res;
 	}
@@ -108,6 +109,7 @@ public class FastqFileManager implements Serializable{
 			System.out.println("Sequence: " + fastq.toString());
 			System.out.println("\t getBaseQualityHeader: " + fastq.getBaseQualityHeader());
 			System.out.println("\t getBaseQualityString: " + fastq.getBaseQualityString());
+			System.out.println("\t  	value: " + getStringQuality(fastq.getBaseQualityString()) );
 			System.out.println("\t getReadHeader: " + fastq.getReadHeader());
 			System.out.println("\t getReadString: " + fastq.getReadString());
 			System.out.println("\t  	hashCode: " + fastq.hashCode());
@@ -136,12 +138,11 @@ public class FastqFileManager implements Serializable{
 	
 	public void getFqRDDSatistics(JavaSparkContext sc, String folderPath) throws IOException{
 		System.out.println("Début");
-		//List<FastqRecord> fastqArray = getFqArray(filePath);
-		//JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
+		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
 		
 		// TOTEST
 		
-		JavaRDD<FastqRecord> fqrdd =filterFqRdd(sc, folderPath, 0, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,true);
+		//JavaRDD<FastqRecord> fqrdd =filterFqRdd(sc, folderPath, 0, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,true);
 		/* We want to know:
 
 		    number of:
@@ -240,18 +241,12 @@ public class FastqFileManager implements Serializable{
 			}
 		});
 		
-		// TODO
-		JavaPairRDD<Integer,Integer> meanPositionQualities = fqrdd.mapToPair(new PairFunction<FastqRecord, Integer,Integer>(){
-			public Tuple2<Integer, Integer> call(FastqRecord r) {
-				return new Tuple2<Integer,Integer> (r.getReadString().length(), getSequenceQuality(r)/r.length()) ;  // Recupération des séquences
-			}
-		});
-		//TODO  terminer de determiner le mean quality per position
-		/* ************************ */
+		
 		System.out.println("------------------------------");
 		System.out.println("\t  ENTRY STATS");
 		System.out.println("------------------------------");
 		System.out.println("Sequences and Mean Quality");
+		
 		meanSequencesQualities.foreach(new VoidFunction<Tuple2<String, Integer>>(){
 			public void call(Tuple2<String, Integer> t){
 				//System.out.println(t._1 + " -> "+t._2);
@@ -266,7 +261,7 @@ public class FastqFileManager implements Serializable{
 			}
 		} );
 		
-		System.out.println("------------------------------");
+		System.out.println("---3---------------------------");
 		System.out.println("Sequences and length");
 		sequences.foreach(new VoidFunction<String>(){
 			public void call(String s){
@@ -282,8 +277,46 @@ public class FastqFileManager implements Serializable{
 			}
 		} );
 		
+		System.out.println("------------------------------");
+		System.out.println("Mean Quality per position!");
+		System.out.println("------------------------------");
+		JavaRDD<FastqRecord> meanQual = fqrdd;
+		int pos = 0;
+		long nb = meanQual.count();
+		
+		boolean cont = !meanQual.isEmpty();
+		for(;cont == true ; ){
+			
+			JavaPairRDD<Integer,Integer>  res= meanQualityInPos(meanQual, pos);
+			
+			JavaPairRDD<Integer, Integer> quality = res.reduceByKey(new Function2<Integer, Integer, Integer>() {
+				  public Integer call(Integer a, Integer b) { return a + b; }
+			});
+			
+			System.out.println( quality.first()._1 + " -> "  + quality.first()._2 + " / " + nb); 
+			System.out.println( quality.first()._1 + " -> "  + quality.first()._2 / nb); 
+			
+			//meanQual = filterJavaRdd(meanQual, pos, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,true);
+			nb = meanQual.count();
+			++pos;
+			cont = !meanQual.isEmpty();
+			//cont = nb > pos;
+			
+		}
+		
+		/* ************************ */
+		
 	}
 	
+	private JavaPairRDD<Integer,Integer> meanQualityInPos(JavaRDD<FastqRecord> fqrdd, final int pos){
+		JavaPairRDD<Integer,Integer> meanPositionQualities = fqrdd.mapToPair( new PairFunction<FastqRecord, Integer, Integer>(){
+			public Tuple2<Integer,Integer> call(FastqRecord fq){
+				
+				return new Tuple2<Integer,Integer>(pos,getQualityValue(fq.getBaseQualityString().charAt(pos)));
+			}
+ 		});
+		return meanPositionQualities;
+	}
 	public JavaRDD<FastqRecord> filterFqRdd(JavaSparkContext sc, String folderPath,
 			final int minLength,final int maxLength, final int minQual, final int maxQual, boolean atgc) throws IOException{
 		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
@@ -316,7 +349,39 @@ public class FastqFileManager implements Serializable{
 			});
 		}
 		return fltrRes;
-		//return le truc filtré
+	}
+	
+	public JavaRDD<FastqRecord> filterJavaRdd(JavaRDD<FastqRecord> fqrdd,
+			final int minLength,final int maxLength, final int minQual, final int maxQual, boolean atgc) throws IOException{
+		
+		JavaRDD<FastqRecord> fltrRes = fqrdd.filter(new Function<FastqRecord,Boolean> (){
+			public Boolean call (FastqRecord fq ){
+				int quality = getSequenceQuality(fq);
+				int len = fq.length();
+				return (len >= minLength)
+						&& (len <= maxLength)
+						&& (quality >= minQual)
+						&& (quality <= maxQual);  
+			}
+		});
+		
+		if(atgc){
+			fltrRes = fltrRes.filter(new Function<FastqRecord, Boolean>(){
+				public Boolean call (FastqRecord fq){
+					//return !fq.getReadString().contains("N"); // retourne que si il y a atgc	
+					String seqLeft = fq.getReadString().replace("A", "")
+							.replace("T", "")
+							.replace("G", "")
+							.replace("C", "");
+					boolean res = !(seqLeft
+							.length() > 0); //TODO Test
+					
+					//System.out.println("SEQ LEFT!! -- ." + seqLeft +'.');
+					return res;
+				}
+			});
+		}
+		return fltrRes;
 	}
 	
 	//TODO Test
@@ -351,21 +416,75 @@ public class FastqFileManager implements Serializable{
 	
 	}
 	
-	public void trimFqRdd (JavaSparkContext sc, String folderPath, int minQuality, int windowSize) throws IOException{
+	public void trimFqRdd (JavaSparkContext sc, String folderPath, final int minQuality, final int windowSize) throws IOException{
 		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
-		// TODO  A savoir si les séquences qui n'ont pas la minimum window size sont exclu
-		//  A savoir si lorsqu'on ne retrouve pas la min seq  ce qu'on fait
 		
-		/*
-		 * Algorithme de principe
-		 * Tant que la séquence total traité à un minimum de window size
-		 * 	calculer la qualité de la séquence dans la windowsize
-		 * 	si ce n'est pas bon on enlève l'extrémité et on continu
-		 * SI C BON? ON CONTINU?
-		 * SI C PAS BON AU MILIEU??
-		 * 
-		 */
+		// filtrer sur la qualité moyenne et la longueur de la séquence
+
+		JavaRDD<FastqRecord> fltrRes = fqrdd.filter(new Function<FastqRecord,Boolean> (){
+			public Boolean call (FastqRecord fq ){
+				int quality = getSequenceQuality(fq);
+				return quality >= minQuality && fq.length() >= 100; //TODO  Verfifier avec Kévin
+			}
+		});
+		
+		fltrRes.foreach(new VoidFunction<FastqRecord>(){
+			public void call(FastqRecord fq){
+				int length = fq.length();
+		
+				int idBegin = 0;
+				int idEnd = length -1;
+				while(idBegin < length - 1 &&
+						getQualityValue( fq.getBaseQualityString().charAt(idBegin)) < minQuality){//TODO  Verfifier avec Kévin
+					++idBegin;
+				}
+				//TODO  Verifier avec Kévin
+				if(length - idBegin > 60){ 
+					
+					idEnd = idBegin;
+					while( length - idEnd -1 > windowSize && 
+							getStringQuality(fq.getBaseQualityString().substring(idEnd, idEnd + windowSize))
+									> minQuality)
+					{
+						++idEnd;
+					}
+					idEnd += windowSize;
+					
+				}
+				// VERIFIER SI L'OBJET PASSE EN ENTREE A ETE MODIFIE
+				fq = new FastqRecord(fq.getReadHeader(), fq.getReadString().substring(idBegin, idEnd), 
+						fq.getBaseQualityHeader(), 
+						fq.getBaseQualityString().substring(idBegin, idEnd));
+				
+				//FastqRecord test = new FastqRecord(seqHeaderPrefix, seqLine, qualHeaderPrefix, qualLine)
+			
+				
+			}
+		});
+		
+		// filtrage pour voir si les séquence obtenu du trim sont interessantes ou pas
+		JavaRDD<FastqRecord> last = fltrRes.filter(new Function<FastqRecord,Boolean> (){
+			public Boolean call (FastqRecord fq ){
+				
+				return fq.length() >= 100 ; //TODO  Verfifier avec Kévin
+			}
+		});
+		
+		last.foreach(new VoidFunction<FastqRecord>(){
+			public void call(FastqRecord fq){
+				System.out.println("Sequence Header: " + fq.getBaseQualityHeader() );
+				System.out.println("Sequence Length: " + fq.getReadString().length() );
+				System.out.println("Sequence Quality: " + getStringQuality(fq.getBaseQualityString()) );
+				System.out.println("Sequence Length: " + fq.getReadString().length() );
+				System.out.println("\t Length: " + fq.length() );
+				System.out.println("Quality Length: " + fq.getBaseQualityString().length() );
+			}
+			
+		});
+		
 	}
+	
+	
 	
 	
 	
