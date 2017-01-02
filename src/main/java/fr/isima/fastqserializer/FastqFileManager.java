@@ -4,8 +4,10 @@ import htsjdk.samtools.fastq.*;
 //import uk.ac.babraham.FastQC.Sequence.*;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -23,6 +25,9 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.api.java.function.VoidFunction;
+
+//import org.apache.hadoop.io.compress.bzip2.*;
+//import org.apache.hadoop.io.compress.BZip2Codec;
 
 import scala.Tuple2;
 
@@ -46,6 +51,13 @@ public class FastqFileManager implements Serializable{
 		return (int) qualityChar - (int) '!';
 	}
 	
+	/*
+	 * Reads a file containing the sequences' data 
+	 * and constructs a List containing objects representing that Data
+	 * 
+	 * @params filepath : path to the file
+	 * @return list containing object representing the sequence data
+	 */
 	private List<FastqRecord> getFqArray(String filePath){
 		FastqReader fastqReader = new FastqReader(new File(filePath));
 		List<FastqRecord> fastqArray = new ArrayList<FastqRecord>();
@@ -133,7 +145,14 @@ public class FastqFileManager implements Serializable{
 		System.out.println("Exportation");
 		// si le dossier existe déjà, il lance une erreur
 		fastqRDD.saveAsObjectFile(resultFolder );
-		//fastqRDD.saveAsObjectFile("./results/temp/SP1.fqrdd");
+		
+		// using bzip2 to compress the output
+		/* OutputStream fout = new org.apache.hadoop.io.compress.BZip2Codec()
+							.createOutputStream(new FileOutputStream(resultFolder) );
+							
+							 *Il faut ensuite écrire les bits...ou écire les objets
+							 * https://www.mkyong.com/java/how-to-compress-serialized-object-into-file/
+							 */
 	}
 	
 	public void getFqRDDSatistics(JavaSparkContext sc, String folderPath) throws IOException{
@@ -317,6 +336,7 @@ public class FastqFileManager implements Serializable{
  		});
 		return meanPositionQualities;
 	}
+	
 	public JavaRDD<FastqRecord> filterFqRdd(JavaSparkContext sc, String folderPath,
 			final int minLength,final int maxLength, final int minQual, final int maxQual, boolean atgc) throws IOException{
 		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);

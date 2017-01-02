@@ -7,7 +7,6 @@ import java.util.Arrays;
 
 import org.apache.spark.api.java.*;
 import org.apache.spark.*;
-
 public class HelloSpark {
 
 	public static void main(String[] args) {
@@ -16,6 +15,8 @@ public class HelloSpark {
 		SparkConf conf = new SparkConf().setAppName("Simple Application").setMaster("local[20]")
 				.set("spark.driver.maxResultSize", "0")
 				.set("spark.rdd.compress", "true")
+				//.set("mapreduce.output.fileoutputformat.compress", "true")
+				//.set("spark.io.compression.codec", "org.apache.hadoop.io.compress.BZip2Codec") //org.apache.hadoop.io.compress.BZip2Codec
 				.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
 				.registerKryoClasses((Class<?>[]) Arrays.asList(FastqRecord.class).toArray());  
 		JavaSparkContext sc = new JavaSparkContext(conf);
@@ -29,15 +30,15 @@ public class HelloSpark {
 		//System.out.println("Goodbye.");
 		String filePath = "./data/SP2.fq";
 		String folderPath = "./results/SP2.fqrdd";
-		String resultPath = "./results/SP2.fqrdd";
+		String resultPath = "./results/SPTest.fqrdd";
 		FastqFileManager fqman = new FastqFileManager();
 		
 		try {
 			//fqman.readFastqFile(filePath);
 			//fqman.convertFastqToFqrdd(sc,filePath,resultPath);
-			//fqman.getFqRDDSatistics(sc,folderPath);
+			fqman.getFqRDDSatistics(sc,folderPath);
 			//fqman.readFqRDD(sc,"./results/SP1.fqrdd/part-00000");
-			fqman.trimFqRdd(sc, folderPath, 15000, 5);
+			//fqman.trimFqRdd(sc, folderPath, 15000, 5);
 			
 		} 
 		catch (IOException e) {
