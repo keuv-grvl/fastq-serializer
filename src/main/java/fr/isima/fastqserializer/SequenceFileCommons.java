@@ -2,7 +2,7 @@ package fr.isima.fastqserializer;
 
 import htsjdk.samtools.fastq.FastqRecord;
 
-public class SequenceFIleCommons {
+public class SequenceFileCommons {
 	
 	/*
 	 * Returns the quality of a sequence object

@@ -17,6 +17,16 @@ import org.apache.spark.api.java.function.Function;
 
 public class SequenceFileManager {
 
+	SequenceFileInterrogator fqInterrogator = new SequenceFileInterrogator();
+	SequenceFileEditor	fqEditor = new SequenceFileEditor();
+	
+	public void getFqRDDSatistics(JavaSparkContext sc, String folderPath) throws IOException{
+		System.out.println("=== Statistiques ===");
+		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
+		
+		fqInterrogator.getFqRDDSatistics(fqrdd);
+	}
+	
 	/*
 	 * Reads a file containing the sequences' data 
 	 * and constructs a List containing objects representing that Data
@@ -142,12 +152,21 @@ public class SequenceFileManager {
 		
 	}
 	
-	
+	/*
+	 * Reads a FqRdd folder and then filters it according to the criterias specified
+	 * @params sc: Spark Context in which we're operating
+	 * @params folderPath: Path to the fqrdd folder
+	 * @params minLength: minimum sequence length wanted 
+	 * @params maxLength: maximum sequence length wanted
+	 * @params minQual: minimum sequence length wanted 
+	 * @params maxQual: maximum sequence length wanted
+	 * @params atgc: specifies if the sequence should only have atgc nucleotides
+	 */
 	public void filterFqRdd(JavaSparkContext sc, String folderPath,
 			final int minLength,final int maxLength, final int minQual, final int maxQual, boolean atgc) throws IOException{
 		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
 		
-		SequenceFileEditor.filterJavaRdd();
+		fqEditor.filterJavaRdd(fqrdd,minLength, maxLength, minQual, maxQual, atgc);
 		
 		
 	}
@@ -160,8 +179,9 @@ public class SequenceFileManager {
 		File headerFile = new File(idFilePath);
 		final List<String> headers = Files.readAllLines(FileSystems.getDefault().getPath(idFilePath));
 		
-		JavaRDD<FastqRecord>  fqrdd = filterFqRdd(sc, folderPath, minLength, maxLength, minQual, maxQual, atgc);
-		JavaRDD<FastqRecord>  fltrRes = fqrdd.filter(new Function<FastqRecord,Boolean> (){
+		JavaRDD<FastqRecord>  fqrdd = readFqRDDFolder(sc,folderPath);
+		JavaRDD<FastqRecord>  temp = fqEditor.filterJavaRdd(fqrdd, minLength, maxLength, minQual, maxQual, atgc);
+		JavaRDD<FastqRecord>  fltrRes = temp.filter(new Function<FastqRecord,Boolean> (){
 			public Boolean call (FastqRecord fq ){
 				return headers.contains(fq.getReadHeader());
 				
@@ -173,5 +193,17 @@ public class SequenceFileManager {
 		
 	}
 	
-}
+	public void sampleFqRdd(JavaSparkContext sc, String folderPath, int nb, int seed) throws IOException
+	{
+		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
+		fqEditor.sampleFqRdd(fqrdd, nb, seed); 
+	}
+
+	public void trimFqRdd (JavaSparkContext sc, String folderPath, final int minQuality, final int windowSize) 
+			throws IOException
+	{
+		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
+		fqEditor.trimFqRdd(fqrdd, minQuality, windowSize);
+	}
+
 }

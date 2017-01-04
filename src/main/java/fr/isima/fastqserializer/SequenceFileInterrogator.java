@@ -18,16 +18,14 @@ import org.apache.spark.api.java.function.VoidFunction;
 import scala.Tuple2;
 
 public class SequenceFileInterrogator {
+	private SequenceFileCommons commons;
 	
 	/*
 	 * Prints out different statistiques about an fqrdd
 	 * 
 	 */
-	public void getFqRDDSatistics(JavaSparkContext sc, String folderPath) throws IOException{
+	public void getFqRDDSatistics(JavaRDD<FastqRecord> fqrdd) throws IOException{
 		System.out.println("=== Statistiques ===");
-		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
-		
-		
 		/* We want to know:
 
 		    number of:
@@ -92,7 +90,7 @@ public class SequenceFileInterrogator {
 		 */
 		JavaPairRDD<String,Integer> meanSequencesQualities = fqrdd.mapToPair(new PairFunction<FastqRecord, String,Integer>(){
 			public Tuple2<String, Integer> call(FastqRecord r) {
-				return new Tuple2<String,Integer> (r.getReadString(), getSequenceQuality(r)/r.length()) ;  // Recupération des séquences
+				return new Tuple2<String,Integer> (r.getReadString(), commons.getSequenceQuality(r)/r.length()) ;  // Recupération des séquences
 			}
 		});
 		/* *************************** */
@@ -198,15 +196,16 @@ public class SequenceFileInterrogator {
 		/*
 		 * Fonction qui retourne la qualité moyenne pour une position parmis un ensemble de séquence
 		 */
-		private JavaPairRDD<Integer,Integer> meanQualityInPos(JavaRDD<FastqRecord> fqrdd, final int pos){
-			JavaPairRDD<Integer,Integer> meanPositionQualities = fqrdd.mapToPair( new PairFunction<FastqRecord, Integer, Integer>(){
-				public Tuple2<Integer,Integer> call(FastqRecord fq){
-					
-					return new Tuple2<Integer,Integer>(pos,getQualityValue(fq.getBaseQualityString().charAt(pos)));
-				}
-	 		});
-			return meanPositionQualities;
-		}
+
 		
+	}
+	private JavaPairRDD<Integer,Integer> meanQualityInPos(JavaRDD<FastqRecord> fqrdd, final int pos){
+		JavaPairRDD<Integer,Integer> meanPositionQualities = fqrdd.mapToPair( new PairFunction<FastqRecord, Integer, Integer>(){
+			public Tuple2<Integer,Integer> call(FastqRecord fq){
+				
+				return new Tuple2<Integer,Integer>(pos,commons.getQualityValue(fq.getBaseQualityString().charAt(pos)));
+			}
+ 		});
+		return meanPositionQualities;
 	}
 }

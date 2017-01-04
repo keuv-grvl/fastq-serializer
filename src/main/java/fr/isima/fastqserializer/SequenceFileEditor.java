@@ -15,15 +15,24 @@ import org.apache.spark.api.java.function.VoidFunction;
 
 public class SequenceFileEditor {
 
+	SequenceFileCommons commons = new SequenceFileCommons();
+	
 	/*
-	 * Filters a JAVARDD according to the criterias given
+	 * Filters an JavaRdd of FqRecords according to criterias specified
+	 * @params fqrdd: JavaRDD to filter
+	 * @params minLength: minimum sequence length wanted 
+	 * @params maxLength: maximum sequence length wanted
+	 * @params minQual: minimum sequence length wanted 
+	 * @params maxQual: maximum sequence length wanted
+	 * @params atgc: specifies if the sequence should only have atgc nucleotides
+	 * @return : the filtered version of the JavaRDD 
 	 */
 	public JavaRDD<FastqRecord> filterJavaRdd(JavaRDD<FastqRecord> fqrdd,
 			final int minLength,final int maxLength, final int minQual, final int maxQual, boolean atgc) throws IOException{
 		
 		JavaRDD<FastqRecord> fltrRes = fqrdd.filter(new Function<FastqRecord,Boolean> (){
 			public Boolean call (FastqRecord fq ){
-				int quality = getSequenceQuality(fq);
+				int quality = commons.getSequenceQuality(fq);
 				int len = fq.length();
 				return (len >= minLength)
 						&& (len <= maxLength)
@@ -51,25 +60,39 @@ public class SequenceFileEditor {
 		return fltrRes;
 	}
 	
-	public void sampleFqRdd(JavaSparkContext sc, String folderPath, int nb, int seed) throws IOException
+	/*
+	 * Returns a random arrangement of sequences in an FqRdd
+	 * @params fqrdd: RDD to sample
+	 * @params nb: number of sequences wanted
+	 * @params seed: seed for the shuffle
+	 * @return the sample 
+	 */
+	public JavaRDD<FastqRecord> sampleFqRdd(JavaRDD<FastqRecord> fqrdd, int nb, int seed) throws IOException
 	{
-		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
-		
 		double percent  = nb / fqrdd.count();
 		JavaRDD<FastqRecord> fqresult = fqrdd.sample(false, percent, seed);
 		
-		// return fqresult;
+		 return fqresult;
 	
 	}
 	
-	public void trimFqRdd (JavaSparkContext sc, String folderPath, final int minQuality, final int windowSize) throws IOException{
-		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
+	/*
+	 * Trims a Sequences according to the criterias given
+	 * @params fqrdd: RDD to trim
+	 * @params minQuality: minimum quality each sequence should have at the end
+	 * @parmas windowSize: windowSize of the Quality Search
+	 * @return : returns the trimmed sequences
+	 * 
+	 */
+	public JavaRDD<FastqRecord> trimFqRdd(JavaRDD<FastqRecord> fqrdd, final int minQuality, final int windowSize) 
+			throws IOException
+	{
 		
 		// filtrer sur la qualité moyenne et la longueur de la séquence
 
 		JavaRDD<FastqRecord> fltrRes = fqrdd.filter(new Function<FastqRecord,Boolean> (){
 			public Boolean call (FastqRecord fq ){
-				int quality = getSequenceQuality(fq);
+				int quality = commons.getSequenceQuality(fq);
 				return quality >= minQuality && fq.length() >= 100; //TODO  Verfifier avec Kévin
 			}
 		});
@@ -81,7 +104,7 @@ public class SequenceFileEditor {
 				int idBegin = 0;
 				int idEnd = length -1;
 				while(idBegin < length - 1 &&
-						getQualityValue( fq.getBaseQualityString().charAt(idBegin)) < minQuality){//TODO  Verfifier avec Kévin
+						commons.getQualityValue( fq.getBaseQualityString().charAt(idBegin)) < minQuality){//TODO  Verfifier avec Kévin
 					++idBegin;
 				}
 				//TODO  Verifier avec Kévin
@@ -89,7 +112,7 @@ public class SequenceFileEditor {
 					
 					idEnd = idBegin;
 					while( length - idEnd -1 > windowSize && 
-							getStringQuality(fq.getBaseQualityString().substring(idEnd, idEnd + windowSize))
+							commons.getStringQuality(fq.getBaseQualityString().substring(idEnd, idEnd + windowSize))
 									> minQuality)
 					{
 						++idEnd;
@@ -115,5 +138,7 @@ public class SequenceFileEditor {
 				return fq.length() >= 100 ; //TODO  Verfifier avec Kévin
 			}
 		});
+		
+		return last;
 	}
 }
