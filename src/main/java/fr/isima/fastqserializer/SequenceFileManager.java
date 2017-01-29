@@ -1,7 +1,7 @@
 package fr.isima.fastqserializer;
 
-import htsjdk.samtools.fastq.FastqReader;
-import htsjdk.samtools.fastq.FastqRecord;
+import fr.isima.fastxrecord.*;
+import fr.isima.fastxrecord.filereaders.*;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -34,16 +34,18 @@ public class SequenceFileManager {
 	 * @params filepath : path to the file
 	 * @return list containing object representing the sequence data
 	 */
-	private List<FastqRecord> getFqArray(String filePath){
-		FastqReader fastqReader = new FastqReader(new File(filePath));
-		List<FastqRecord> fastqArray = new ArrayList<FastqRecord>();
+	private List<FastxRecord> getFqArray(String filePath) throws IOException{
+		FastxFileReader fastqReader = FileReaderFactory.getFileReader(filePath);
+		
+		
+		
+		List<FastxRecord> fastqArray = new ArrayList<FastxRecord>();
 
-		for (FastqRecord fastq : fastqReader)
+		for (FastxRecord fastq : fastqReader.readFile())
 		{
 			fastqArray.add(fastq);
 
 		}
-		fastqReader.close();
 		return fastqArray;
 	}
 	
@@ -52,22 +54,21 @@ public class SequenceFileManager {
 	 * @params filePath: path of the file to read
 	 */
 	public void readFastqFile(String filePath) throws IOException {
-		FastqReader fastqReader = new FastqReader(new File(filePath));
+		FastxFileReader fastqReader = FileReaderFactory.getFileReader(filePath);
 
-		for (FastqRecord fastq : fastqReader)
+		for (FastxRecord fastq : fastqReader.readFile())
 		{
 			System.out.println("Sequence: " + fastq.toString());
-			System.out.println("\t getBaseQualityHeader: " + fastq.getBaseQualityHeader());
-			System.out.println("\t getBaseQualityString: " + fastq.getBaseQualityString());
-			//System.out.println("\t  	value: " + getStringQuality(fastq.getBaseQualityString()) );
-			System.out.println("\t getReadHeader: " + fastq.getReadHeader());
-			System.out.println("\t getReadString: " + fastq.getReadString());
-			System.out.println("\t  	hashCode: " + fastq.hashCode());
-			System.out.println("\t  	length: " + fastq.length());
+			System.out.println("\t getQualityHeader: " + ((FastqRecord) fastq).getQualityHeader());
+			System.out.println("\t getQualityString: " + ((FastqRecord) fastq).getQualityString());
+			System.out.println("\t  	value: " + ((FastqRecord) fastq).getQualityValue());
+			System.out.println("\t getReadHeader: " + ((FastqRecord) fastq).getSequenceHeader());
+			System.out.println("\t getReadString: " + ((FastqRecord) fastq).getSequenceString());
+			System.out.println("\t  	hashCode: " + ((FastqRecord) fastq).hashCode());
+			System.out.println("\t  	length: " + ((FastqRecord) fastq).getLength());
 			System.out.println("------------------------------- ");
 
 		}
-		fastqReader.close();
 	}
 	
 	/*
@@ -79,15 +80,15 @@ public class SequenceFileManager {
 	 */
 	public void convertFastqToFqrdd(JavaSparkContext sc, String filePath, String resultFolder) throws IOException {
 		
-		List<FastqRecord> fastqArray = getFqArray(filePath);
+		List<FastxRecord> fastqArray = getFqArray(filePath);
 		
 		/* Transformation des objets fastq en objets RDD */
 		System.out.println("Parallelisation");
-		JavaRDD<FastqRecord> fastqRDD =  sc.parallelize(fastqArray);	
+		JavaRDD<FastxRecord> fastqRDD =  sc.parallelize(fastqArray);	
 
 		System.out.println("Exportation");
 		// si le dossier existe déjà, il lance une erreur
-		fastqRDD.saveAsObjectFile(resultFolder );
+		fastqRDD.saveAsObjectFile(resultFolder);
 		
 		// using bzip2 to compress the output
 		/* OutputStream fout = new org.apache.hadoop.io.compress.BZip2Codec()
@@ -183,7 +184,7 @@ public class SequenceFileManager {
 		JavaRDD<FastqRecord>  temp = fqEditor.filterJavaRdd(fqrdd, minLength, maxLength, minQual, maxQual, atgc);
 		JavaRDD<FastqRecord>  fltrRes = temp.filter(new Function<FastqRecord,Boolean> (){
 			public Boolean call (FastqRecord fq ){
-				return headers.contains(fq.getReadHeader());
+				return headers.contains(fq.getSequenceHeader());
 				
 			}
 		});

@@ -1,7 +1,6 @@
 package fr.isima.fastqserializer;
 
-import htsjdk.samtools.fastq.FastqReader;
-import htsjdk.samtools.fastq.FastqRecord;
+import fr.isima.fastxrecord.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,8 +31,8 @@ public class SequenceFileEditor {
 		
 		JavaRDD<FastqRecord> fltrRes = fqrdd.filter(new Function<FastqRecord,Boolean> (){
 			public Boolean call (FastqRecord fq ){
-				int quality = commons.getSequenceQuality(fq);
-				int len = fq.length();
+				int quality = fq.getQualityValue();
+				int len = fq.getLength();
 				return (len >= minLength)
 						&& (len <= maxLength)
 						&& (quality >= minQual)
@@ -45,7 +44,7 @@ public class SequenceFileEditor {
 			fltrRes = fltrRes.filter(new Function<FastqRecord, Boolean>(){
 				public Boolean call (FastqRecord fq){
 					//return !fq.getReadString().contains("N"); // retourne que si il y a atgc	
-					String seqLeft = fq.getReadString().replace("A", "")
+					String seqLeft = fq.getSequenceString().replace("A", "")
 							.replace("T", "")
 							.replace("G", "")
 							.replace("C", "");
@@ -92,19 +91,20 @@ public class SequenceFileEditor {
 
 		JavaRDD<FastqRecord> fltrRes = fqrdd.filter(new Function<FastqRecord,Boolean> (){
 			public Boolean call (FastqRecord fq ){
-				int quality = commons.getSequenceQuality(fq);
-				return quality >= minQuality && fq.length() >= 100; //TODO  Verfifier avec Kévin
+				int quality = fq.getQualityValue();
+				return quality >= minQuality && fq.getLength() >= 100; //TODO  Verfifier avec Kévin
 			}
 		});
 		
 		fltrRes.foreach(new VoidFunction<FastqRecord>(){
 			public void call(FastqRecord fq){
-				int length = fq.length();
+				int length = fq.getLength();
 		
 				int idBegin = 0;
 				int idEnd = length -1;
 				while(idBegin < length - 1 &&
-						commons.getQualityValue( fq.getBaseQualityString().charAt(idBegin)) < minQuality){//TODO  Verfifier avec Kévin
+						fq.getEncoding().getQualityValue(fq.getQualityString().charAt(idBegin)) < minQuality){
+					//TODO  Verfifier avec Kévin
 					++idBegin;
 				}
 				//TODO  Verifier avec Kévin
@@ -112,7 +112,7 @@ public class SequenceFileEditor {
 					
 					idEnd = idBegin;
 					while( length - idEnd -1 > windowSize && 
-							commons.getStringQuality(fq.getBaseQualityString().substring(idEnd, idEnd + windowSize))
+							commons.getStringQuality(fq.getQualityString().substring(idEnd, idEnd + windowSize))
 									> minQuality)
 					{
 						++idEnd;
@@ -121,9 +121,9 @@ public class SequenceFileEditor {
 					
 				}
 				// VERIFIER SI L'OBJET PASSE EN ENTREE A ETE MODIFIE
-				fq = new FastqRecord(fq.getReadHeader(), fq.getReadString().substring(idBegin, idEnd), 
-						fq.getBaseQualityHeader(), 
-						fq.getBaseQualityString().substring(idBegin, idEnd));
+				fq = new FastqRecord(fq.getSequenceHeader(), fq.getSequenceString().substring(idBegin, idEnd), 
+						fq.getQualityHeader(), 
+						fq.getQualityString().substring(idBegin, idEnd));
 				
 				//FastqRecord test = new FastqRecord(seqHeaderPrefix, seqLine, qualHeaderPrefix, qualLine)
 			
@@ -135,7 +135,7 @@ public class SequenceFileEditor {
 		JavaRDD<FastqRecord> last = fltrRes.filter(new Function<FastqRecord,Boolean> (){
 			public Boolean call (FastqRecord fq ){
 				
-				return fq.length() >= 100 ; //TODO  Verfifier avec Kévin
+				return fq.getLength() >= 100 ; //TODO  Verfifier avec Kévin
 			}
 		});
 		

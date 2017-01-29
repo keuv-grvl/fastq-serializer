@@ -1,5 +1,9 @@
 package fr.isima.fastqserializer;
 
+
+// changement au niveau de SequecesMeanQuality (chagement deString à FqRDD  (voir aussi l'affichage)
+// ajout de la fonction getMaxNucleotideQuality getMin NucleotideQuality get Q1 et Q3
+// ajout de "fill position"
 import htsjdk.samtools.fastq.*;
 //import uk.ac.babraham.FastQC.Sequence.*;
 
@@ -33,6 +37,67 @@ import scala.Tuple2;
 
 
 public class FastqFileManager implements Serializable{
+	int positions[];
+	
+	private void addToArray(int[] positions, int numberOfPos, int numberOfTimes){
+		//System.out.println(positions[0]);
+		
+		for(int i = 0; i < numberOfPos; ++i){
+			positions[i]+= numberOfTimes;
+			// System.out.println("Adding: " + numberOfTimes + " to: " + i + " = " + positions[i].intValue());
+		}
+	}
+	
+	private int getMaxNucleotideQuality(FastqRecord fqrecord){
+		
+		int max = getQualityValue(fqrecord.getBaseQualityString().charAt(0));
+		for(int i = 1; i < fqrecord.getBaseQualityString().length(); i++){
+			int temp = getQualityValue(fqrecord.getBaseQualityString().charAt(i));
+			max = (temp > max)? temp : max ;
+		}
+		
+		return max;
+	}
+	
+	
+	private int getMinNucleotideQuality(FastqRecord fqrecord){
+		
+		int min = getQualityValue(fqrecord.getBaseQualityString().charAt(0));
+		for(int i = 1; i < fqrecord.getBaseQualityString().length(); i++){
+			int temp = getQualityValue(fqrecord.getBaseQualityString().charAt(i));
+			min = (temp < min)? temp : min ;
+		}
+		
+		return min;
+	}
+	
+	private int getQ1(FastqRecord fqrecord){
+		
+		int quality = getSequenceQuality(fqrecord);
+		int cumQual = 0;
+		int dest = quality / 4 ;
+		int i = 0;
+		
+		for(; cumQual < dest  ; i++){
+			cumQual += getQualityValue(fqrecord.getBaseQualityString().charAt(i));
+		}
+		
+		return i;
+	}
+	
+	private int getQ3(FastqRecord fqrecord){
+		
+		int quality = getSequenceQuality(fqrecord);
+		int cumQual = 0;
+		int dest = quality *3 / 4 ;
+		int i = 0;
+		
+		for(; cumQual < dest  ; i++){
+			cumQual += getQualityValue(fqrecord.getBaseQualityString().charAt(i));
+		}
+		
+		return i;
+	}
 	
 	private int getSequenceQuality(FastqRecord fqrecord){
 		
@@ -157,7 +222,7 @@ public class FastqFileManager implements Serializable{
 	
 	public void getFqRDDSatistics(JavaSparkContext sc, String folderPath) throws IOException{
 		System.out.println("Début");
-		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
+		final JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
 		
 		// TOTEST
 		
@@ -229,11 +294,38 @@ public class FastqFileManager implements Serializable{
 		/*
 		 * Récupération de la qualité moyenne de chaque séquences
 		 */
-		JavaPairRDD<String,Integer> meanSequencesQualities = fqrdd.mapToPair(new PairFunction<FastqRecord, String,Integer>(){
-			public Tuple2<String, Integer> call(FastqRecord r) {
-				return new Tuple2<String,Integer> (r.getReadString(), getSequenceQuality(r)/r.length()) ;  // Recupération des séquences
+		JavaPairRDD<FastqRecord,Integer> meanSequencesQualities = fqrdd.mapToPair(new PairFunction<FastqRecord, FastqRecord,Integer>(){
+			public Tuple2<FastqRecord, Integer> call(FastqRecord r) {
+				return new Tuple2<FastqRecord,Integer> (r , getSequenceQuality(r)/r.length()) ;  // Recupération des séquences
 			}
 		});
+		
+		/*
+		 * Qualité moyenne totale  
+		 */
+		JavaPairRDD<Integer,Integer> allTotalSequencesQualities = fqrdd.mapToPair(new PairFunction<FastqRecord, Integer,Integer>(){
+			public Tuple2<Integer, Integer> call(FastqRecord r) {
+				return new Tuple2<Integer,Integer> (r.length(), getSequenceQuality(r)) ;  // Recupération des séquences
+			}
+		});
+		
+		JavaRDD<Integer> justKeys = allTotalSequencesQualities.keys();
+		int totalNucleotides = justKeys.reduce(new Function2<Integer, Integer, Integer>(){ 
+				//Reduce Function for cumulative sum
+			public Integer call(Integer accum, Integer val) throws Exception {
+					return accum + val;
+				}
+		});
+		
+		JavaRDD<Integer> justValues = allTotalSequencesQualities.values();
+		int totalQuality = justValues.reduce(new Function2<Integer, Integer, Integer>(){ 
+				//Reduce Function for cumulative sum
+			public Integer call(Integer accum, Integer val) throws Exception {
+					return accum + val;
+				}
+		});
+		
+		
 		/* *************************** */
 		
 		/*
@@ -247,10 +339,12 @@ public class FastqFileManager implements Serializable{
 		});
 		
 		//REDUCE
-		JavaPairRDD<Integer, Integer> distLenght = distributions.reduceByKey(new Function2<Integer, Integer, Integer>() {
+		JavaPairRDD<Integer, Integer> distLength = distributions.reduceByKey(new Function2<Integer, Integer, Integer>() {
 			  public Integer call(Integer a, Integer b) { return a + b; }
 		});
 		
+		distLength = distLength.sortByKey(false);
+	
 		/* ****************************************** */
 		
 		//<Seq,Quality>
@@ -266,12 +360,23 @@ public class FastqFileManager implements Serializable{
 		System.out.println("------------------------------");
 		System.out.println("Sequences and Mean Quality");
 		
-		meanSequencesQualities.foreach(new VoidFunction<Tuple2<String, Integer>>(){
-			public void call(Tuple2<String, Integer> t){
-				//System.out.println(t._1 + " -> "+t._2);
+		meanSequencesQualities.foreach(new VoidFunction<Tuple2<FastqRecord, Integer>>(){
+			public void call(Tuple2<FastqRecord, Integer> t){
+				// TODO  This was added
+				int max = getMaxNucleotideQuality(t._1);
+				int min = getMinNucleotideQuality(t._1);
+				int Q1 = getQ1(t._1);
+				int Q3 = getQ3(t._1);
+				
+				System.out.println(t._1.getReadHeader());
+				System.out.println("\t Mean Quality: " + t._2 );
+				System.out.println("\t Max Quality: " + max );
+				System.out.println("\t Min Quality: " + min );
+				System.out.println("\t Q1 Position: " + Q1 );
+				System.out.println("\t Q3 Position: " + Q3 );
 			}
 		} );
-		
+				
 		System.out.println("------------------------------");
 		System.out.println("Nucleotides found");
 		counts.foreach(new VoidFunction<Tuple2<String, Integer>>(){
@@ -280,7 +385,7 @@ public class FastqFileManager implements Serializable{
 			}
 		} );
 		
-		System.out.println("---3---------------------------");
+		System.out.println("------------------------------");
 		System.out.println("Sequences and length");
 		sequences.foreach(new VoidFunction<String>(){
 			public void call(String s){
@@ -290,7 +395,8 @@ public class FastqFileManager implements Serializable{
 		
 		System.out.println("------------------------------");
 		System.out.println("Distributions found");
-		distLenght.foreach(new VoidFunction<Tuple2<Integer, Integer>>(){
+		
+		distLength.foreach(new VoidFunction<Tuple2<Integer, Integer>>(){
 			public void call(Tuple2<Integer, Integer> t){
 				System.out.println(t._1 + " -> "+t._2);
 			}
@@ -299,32 +405,66 @@ public class FastqFileManager implements Serializable{
 		System.out.println("------------------------------");
 		System.out.println("Mean Quality per position!");
 		System.out.println("------------------------------");
-		JavaRDD<FastqRecord> meanQual = fqrdd;
-		int pos = 0;
-		long nb = meanQual.count();
+
+		int maxLength = distLength.first()._1;		
+		//final int positions[] = new int[maxLength];
+		positions = new int[maxLength];
+		//Arrays.fill(positions, 0);
+		//positions[0] += 5;
 		
-		boolean cont = !meanQual.isEmpty();
-		for(;cont == true ; ){
+		distLength.foreach(new VoidFunction<Tuple2<Integer, Integer>>(){
+			public void call(Tuple2<Integer, Integer> t){
+				System.out.println("T1: " +t._1 + ", T2: " + t._2);
+				addToArray(positions, t._1, t._2 );
+				// TODO  toutes modification de position faite ici ne marche pas o.o; faudra refactoriser
+				positions[0] = 5;
+			}
+		});
+		
+		System.out.println("Final value in positions");
+		for(int i = 0; i < maxLength; i++){
 			
-			JavaPairRDD<Integer,Integer>  res= meanQualityInPos(meanQual, pos);
-			
-			JavaPairRDD<Integer, Integer> quality = res.reduceByKey(new Function2<Integer, Integer, Integer>() {
-				  public Integer call(Integer a, Integer b) { return a + b; }
-			});
-			
-			System.out.println( quality.first()._1 + " -> "  + quality.first()._2 + " / " + nb); 
-			System.out.println( quality.first()._1 + " -> "  + quality.first()._2 / nb); 
-			
-			//meanQual = filterJavaRdd(meanQual, pos, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,true);
-			nb = meanQual.count();
-			++pos;
-			cont = !meanQual.isEmpty();
-			//cont = nb > pos;
-			
+			//System.out.println(positions[i]);
 		}
+		for(int i = 0; i < maxLength; i++){
+			int qual = getQualityInPosition(fqrdd, i);
+			System.out.println("[" + i + "," + positions[i]+"]");
+			// System.out.println("Position: " + i + " -> " + qual / positions[i]);
+		}
+		/*
+		final Integer positions[] = new Integer[maxLength];
+		Arrays.fill(positions, 0);
+		
+		JavaRDD<Integer> positionsRDD = sc.parallelize(Arrays.asList(positions));
+		 JavaPairRDD<Integer, Long> positionsOccurence = positionsRDD.zipWithIndex();
+		
+		positionsOccurence.foreach(new VoidFunction<Tuple2<Integer,Long>>(){
+			public void call(Tuple2<Integer,Long> t){
+				int qual = getQualityInPosition(fqrdd, t._2.intValue());
+				System.out.println("Position: " + t + " -> " + qual / t._1 );
+			}
+		} );
+		//*/
 		
 		/* ************************ */
 		
+	}
+	
+	private int getQualityInPosition(JavaRDD<FastqRecord> fqrdd, final int pos){
+		JavaPairRDD<Integer,Integer> meanPositionQualities = fqrdd.mapToPair( new PairFunction<FastqRecord, Integer, Integer>(){
+			public Tuple2<Integer,Integer> call(FastqRecord fq){
+				int val = 0;
+				if(fq.length() > pos)
+					val = getQualityValue(fq.getBaseQualityString().charAt(pos));
+				
+				return new Tuple2<Integer,Integer>(pos,val);
+			}
+ 		});
+		meanPositionQualities = meanPositionQualities.reduceByKey(new Function2<Integer, Integer, Integer>() {
+			  public Integer call(Integer a, Integer b) { return a + b; }
+		});
+		
+		return meanPositionQualities.first()._2;
 	}
 	
 	private JavaPairRDD<Integer,Integer> meanQualityInPos(JavaRDD<FastqRecord> fqrdd, final int pos){

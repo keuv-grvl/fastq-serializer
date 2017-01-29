@@ -1,6 +1,6 @@
 package fr.isima.fastqserializer;
 
-import htsjdk.samtools.fastq.FastqRecord;
+import fr.isima.fastxrecord.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -50,7 +50,7 @@ public class SequenceFileInterrogator {
 		 */
 		JavaRDD<String> sequences = fqrdd.flatMap(new FlatMapFunction<FastqRecord, String>(){
 			public Iterator<String> call(FastqRecord r) {
-				List<String> list = Arrays.asList( r.getReadString().split(" "));
+				List<String> list = Arrays.asList( r.getSequenceString().split(" "));
 				Iterable<String> iter = list;
 				return iter.iterator(); 
 			}
@@ -90,7 +90,7 @@ public class SequenceFileInterrogator {
 		 */
 		JavaPairRDD<String,Integer> meanSequencesQualities = fqrdd.mapToPair(new PairFunction<FastqRecord, String,Integer>(){
 			public Tuple2<String, Integer> call(FastqRecord r) {
-				return new Tuple2<String,Integer> (r.getReadString(), commons.getSequenceQuality(r)/r.length()) ;  // Recupération des séquences
+				return new Tuple2<String,Integer> (r.getSequenceString(), r.getQualityValue()) ;  // Recupération des séquences
 			}
 		});
 		/* *************************** */
@@ -124,7 +124,7 @@ public class SequenceFileInterrogator {
 			private static final long serialVersionUID = 1L;
 
 			public Tuple2<String, String> call(FastqRecord r) {
-				return new Tuple2<String,String> (r.getReadString(), r.getBaseQualityString());
+				return new Tuple2<String,String> (r.getSequenceString(), r.getQualityString());
 			}
 		});
 		
@@ -203,7 +203,7 @@ public class SequenceFileInterrogator {
 		JavaPairRDD<Integer,Integer> meanPositionQualities = fqrdd.mapToPair( new PairFunction<FastqRecord, Integer, Integer>(){
 			public Tuple2<Integer,Integer> call(FastqRecord fq){
 				
-				return new Tuple2<Integer,Integer>(pos,commons.getQualityValue(fq.getBaseQualityString().charAt(pos)));
+				return new Tuple2<Integer,Integer>(pos,commons.getQualityValue(fq.getQualityString().charAt(pos)));
 			}
  		});
 		return meanPositionQualities;
