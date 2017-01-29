@@ -11,9 +11,18 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.OutputFormat;
+import org.apache.hadoop.mapred.lib.MultipleOutputFormat;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.PairFunction;
+
+import org.apache.hadoop.io.compress.BZip2Codec;
+
+import scala.Tuple2;
 
 public class SequenceFileManager {
 
@@ -90,6 +99,17 @@ public class SequenceFileManager {
 		// si le dossier existe déjà, il lance une erreur
 		fastqRDD.saveAsObjectFile(resultFolder);
 		
+		/*
+		JavaPairRDD<FastxRecord,String> fqrdd = fastqRDD.mapToPair( new PairFunction<FastxRecord, FastxRecord, String>(){
+			public Tuple2<FastxRecord,String> call(FastxRecord fq){
+				
+				return new Tuple2<FastxRecord,String>(fq,"");
+			}
+ 		});
+ 		//*/
+			
+	
+		//fqrdd.saveAsHadoopFile(resultFolder, FastxRecord.class, String.class, org.apache.hadoop.mapred.TextOutputFormat<> , org.apache.hadoop.io.compress.BZip2Codec.class);
 		// using bzip2 to compress the output
 		/* OutputStream fout = new org.apache.hadoop.io.compress.BZip2Codec()
 							.createOutputStream(new FileOutputStream(resultFolder) );

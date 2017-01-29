@@ -3,6 +3,7 @@ package fr.isima.fastqserializer;
 import fr.isima.fastxrecord.*;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -17,8 +18,7 @@ import org.apache.spark.api.java.function.VoidFunction;
 
 import scala.Tuple2;
 
-public class SequenceFileInterrogator {
-	private SequenceFileCommons commons;
+public class SequenceFileInterrogator  implements Serializable{
 	
 	/*
 	 * Prints out different statistiques about an fqrdd
@@ -203,7 +203,7 @@ public class SequenceFileInterrogator {
 		JavaPairRDD<Integer,Integer> meanPositionQualities = fqrdd.mapToPair( new PairFunction<FastqRecord, Integer, Integer>(){
 			public Tuple2<Integer,Integer> call(FastqRecord fq){
 				
-				return new Tuple2<Integer,Integer>(pos,commons.getQualityValue(fq.getQualityString().charAt(pos)));
+				return new Tuple2<Integer,Integer>(pos, fq.getEncoding().getQualityValue(fq.getQualityString().charAt(pos)));
 			}
  		});
 		return meanPositionQualities;

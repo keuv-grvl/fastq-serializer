@@ -1,6 +1,8 @@
 package fr.isima.fastxrecord;
 
-public class FastqRecord extends FastaRecord {
+import java.io.Serializable;
+
+public class FastqRecord extends FastaRecord{
 	
 	
 	protected String qualityHeader;
