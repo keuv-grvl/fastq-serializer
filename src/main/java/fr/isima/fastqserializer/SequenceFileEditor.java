@@ -31,7 +31,7 @@ public class SequenceFileEditor {
 		
 		JavaRDD<FastqRecord> fltrRes = fqrdd.filter(new Function<FastqRecord,Boolean> (){
 			public Boolean call (FastqRecord fq ){
-				int quality = fq.getQualityValue();
+				int quality = fq.getMeanQuality();
 				int len = fq.getLength();
 				return (len >= minLength)
 						&& (len <= maxLength)
@@ -91,7 +91,7 @@ public class SequenceFileEditor {
 
 		JavaRDD<FastqRecord> fltrRes = fqrdd.filter(new Function<FastqRecord,Boolean> (){
 			public Boolean call (FastqRecord fq ){
-				int quality = fq.getQualityValue();
+				int quality = fq.getMeanQuality();
 				return quality >= minQuality && fq.getLength() >= 100; //TODO  Verfifier avec Kévin
 			}
 		});

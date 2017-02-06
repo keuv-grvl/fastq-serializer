@@ -20,6 +20,60 @@ import scala.Tuple2;
 
 public class SequenceFileInterrogator  implements Serializable{
 	
+	
+private int getMaxNucleotideQuality(FastqRecord fqrecord){
+		int max = fqrecord.getQualityAt(0);
+
+		for(int i = 1; i < fqrecord.getLength(); i++){
+			int temp = fqrecord.getQualityAt(i);
+			
+			max = (temp > max)? temp : max ;
+		}
+		
+		return max;
+	}
+	
+	
+	private int getMinNucleotideQuality(FastqRecord fqrecord){
+		
+		int min = fqrecord.getQualityAt(0);
+		for(int i = 1; i < fqrecord.getLength(); i++){
+			int temp = fqrecord.getQualityAt(i);
+			min = (temp < min)? temp : min ;
+		}
+		
+		return min;
+	}
+	
+	private int getQ1(FastqRecord fqrecord){
+		
+		int quality = fqrecord.getTotalQuality();
+		int cumQual = 0;
+		int dest = quality / 4 ;
+		int i = 0;
+		
+		for(; cumQual < dest  ; i++){		
+			cumQual += fqrecord.getQualityAt(i);
+		}
+		
+		return i;
+	}
+	
+	private int getQ3(FastqRecord fqrecord){
+		
+		int quality = fqrecord.getTotalQuality();
+		int cumQual = 0;
+		int dest = quality *3 / 4 ; // erreur puisque qu'on retourne la qualité moyenne
+		int i = 0;
+		
+		for(; cumQual < dest  ; i++){
+			cumQual += fqrecord.getQualityAt(i);
+		}
+		
+		return i;
+	}
+	
+	
 	/*
 	 * Prints out different statistiques about an fqrdd
 	 * 
@@ -88,9 +142,9 @@ public class SequenceFileInterrogator  implements Serializable{
 		/*
 		 * Mean Quality per Sequences
 		 */
-		JavaPairRDD<String,Integer> meanSequencesQualities = fqrdd.mapToPair(new PairFunction<FastqRecord, String,Integer>(){
-			public Tuple2<String, Integer> call(FastqRecord r) {
-				return new Tuple2<String,Integer> (r.getSequenceString(), r.getQualityValue()) ;  // Recupération des séquences
+		JavaPairRDD<FastqRecord,Integer> meanSequencesQualities = fqrdd.mapToPair(new PairFunction<FastqRecord, FastqRecord,Integer>(){
+			public Tuple2<FastqRecord, Integer> call(FastqRecord r) {
+				return new Tuple2<FastqRecord,Integer> (r, r.getMeanQuality()) ;  // Recupération des séquences
 			}
 		});
 		/* *************************** */
@@ -110,32 +164,28 @@ public class SequenceFileInterrogator  implements Serializable{
 			  public Integer call(Integer a, Integer b) { return a + b; }
 		});
 		
-		/* ****************************************** */
-		
-		
-		/*
-		 * Getting each sequence and their quality
-		 */
-		//<Seq,Quality>
-		JavaPairRDD<String,String> SeqQualities = fqrdd.mapToPair(new PairFunction<FastqRecord, String,String>(){
-			/**
-			 * 
-			 */
-			private static final long serialVersionUID = 1L;
-
-			public Tuple2<String, String> call(FastqRecord r) {
-				return new Tuple2<String,String> (r.getSequenceString(), r.getQualityString());
-			}
-		});
-		
+		/* ****************************************** */		
 		
 		System.out.println("------------------------------");
 		System.out.println("\t  ENTRY STATS");
 		System.out.println("------------------------------");
 		System.out.println("Sequences and Mean Quality");
 		
-		meanSequencesQualities.foreach(new VoidFunction<Tuple2<String, Integer>>(){
-			public void call(Tuple2<String, Integer> t){
+		meanSequencesQualities.foreach(new VoidFunction<Tuple2<FastqRecord, Integer>>(){
+			public void call(Tuple2<FastqRecord, Integer> t){
+				// TODO  This was added
+				int max = getMaxNucleotideQuality(t._1);
+				int min = getMinNucleotideQuality(t._1);
+				int Q1 = getQ1(t._1);
+				int Q3 = getQ3(t._1);
+				
+				System.out.println(t._1.getSequenceHeader());
+				System.out.println("\t Mean Quality: " + t._2 );
+				System.out.println("\t Max Quality: " + max );
+				System.out.println("\t Min Quality: " + min );
+				System.out.println("\t Q1 Position: " + Q1 );
+				System.out.println("\t Q3 Position: " + Q3 );
+				
 				//System.out.println(t._1 + " -> "+t._2);
 			}
 		} );
@@ -148,7 +198,7 @@ public class SequenceFileInterrogator  implements Serializable{
 			}
 		} );
 		
-		System.out.println("---3---------------------------");
+		System.out.println("-------------------------------");
 		System.out.println("Sequences and length");
 		sequences.foreach(new VoidFunction<String>(){
 			public void call(String s){
@@ -164,6 +214,7 @@ public class SequenceFileInterrogator  implements Serializable{
 			}
 		} );
 		
+		/*
 		System.out.println("------------------------------");
 		System.out.println("Mean Quality per position!");
 		System.out.println("------------------------------");
@@ -189,21 +240,19 @@ public class SequenceFileInterrogator  implements Serializable{
 			cont = !meanQual.isEmpty();
 			//cont = nb > pos;
 			
-		}
-		
-		/* ************************ */
-		
-		/*
-		 * Fonction qui retourne la qualité moyenne pour une position parmis un ensemble de séquence
-		 */
-
-		
+		} 
+		//*/	
 	}
+	
+
+	/*
+	 * Fonction qui retourne la qualité moyenne pour une position parmis un ensemble de séquence
+	 */
 	private JavaPairRDD<Integer,Integer> meanQualityInPos(JavaRDD<FastqRecord> fqrdd, final int pos){
 		JavaPairRDD<Integer,Integer> meanPositionQualities = fqrdd.mapToPair( new PairFunction<FastqRecord, Integer, Integer>(){
 			public Tuple2<Integer,Integer> call(FastqRecord fq){
 				
-				return new Tuple2<Integer,Integer>(pos, fq.getEncoding().getQualityValue(fq.getQualityString().charAt(pos)));
+				return new Tuple2<Integer,Integer>(pos, fq.getQualityAt(pos));
 			}
  		});
 		return meanPositionQualities;

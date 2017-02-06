@@ -70,7 +70,7 @@ public class SequenceFileManager {
 			System.out.println("Sequence: " + fastq.toString());
 			System.out.println("\t getQualityHeader: " + ((FastqRecord) fastq).getQualityHeader());
 			System.out.println("\t getQualityString: " + ((FastqRecord) fastq).getQualityString());
-			System.out.println("\t  	value: " + ((FastqRecord) fastq).getQualityValue());
+			System.out.println("\t  	value: " + ((FastqRecord) fastq).getMeanQuality());
 			System.out.println("\t getReadHeader: " + ((FastqRecord) fastq).getSequenceHeader());
 			System.out.println("\t getReadString: " + ((FastqRecord) fastq).getSequenceString());
 			System.out.println("\t  	hashCode: " + ((FastqRecord) fastq).hashCode());
