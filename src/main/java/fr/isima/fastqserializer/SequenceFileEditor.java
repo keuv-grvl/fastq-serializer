@@ -1,9 +1,11 @@
 package fr.isima.fastqserializer;
 
+import fr.isima.entities.KmeanMatrix;
 import fr.isima.fastxrecord.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,10 +14,8 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.VoidFunction;
 
-public class SequenceFileEditor {
+public class SequenceFileEditor implements Serializable {
 
-	SequenceFileCommons commons = new SequenceFileCommons();
-	
 	/*
 	 * Filters an JavaRdd of FqRecords according to criterias specified
 	 * @params fqrdd: JavaRDD to filter
@@ -112,8 +112,9 @@ public class SequenceFileEditor {
 					
 					idEnd = idBegin;
 					while( length - idEnd -1 > windowSize && 
-							commons.getStringQuality(fq.getQualityString().substring(idEnd, idEnd + windowSize))
+							fq.getEncoding().getQualityValue(fq.getQualityString().substring(idEnd, idEnd + windowSize))
 									> minQuality)
+							
 					{
 						++idEnd;
 					}
@@ -141,4 +142,24 @@ public class SequenceFileEditor {
 		
 		return last;
 	}
+	
+	public void countAllKmers(JavaRDD<FastqRecord> fq){
+		fq.foreach(new VoidFunction<FastqRecord>(){
+			public void call(FastqRecord fq){
+				//System.out.println("-- FqAdding: "+ fq.getSequenceHeader());
+				String sub = fq.getSequenceString();
+				int k = KmeanMatrix.getKeyLength();
+				int i = 0;
+				while(sub.length() - i >= k){
+					String key =sub.substring(i, i+k);
+					KmeanMatrix.getInstance().add(key, fq.getSequenceHeader());
+					i++;
+				}
+				
+				
+			}
+		});
+		
+	}
+	
 }

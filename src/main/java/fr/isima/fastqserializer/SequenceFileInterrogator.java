@@ -63,7 +63,7 @@ private int getMaxNucleotideQuality(FastqRecord fqrecord){
 		
 		int quality = fqrecord.getTotalQuality();
 		int cumQual = 0;
-		int dest = quality *3 / 4 ; // erreur puisque qu'on retourne la qualité moyenne
+		int dest = quality *3 / 4 ; 
 		int i = 0;
 		
 		for(; cumQual < dest  ; i++){
@@ -173,7 +173,7 @@ private int getMaxNucleotideQuality(FastqRecord fqrecord){
 		
 		meanSequencesQualities.foreach(new VoidFunction<Tuple2<FastqRecord, Integer>>(){
 			public void call(Tuple2<FastqRecord, Integer> t){
-				// TODO  This was added
+
 				int max = getMaxNucleotideQuality(t._1);
 				int min = getMinNucleotideQuality(t._1);
 				int Q1 = getQ1(t._1);

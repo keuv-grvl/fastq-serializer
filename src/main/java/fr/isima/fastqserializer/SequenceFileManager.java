@@ -1,5 +1,6 @@
 package fr.isima.fastqserializer;
 
+import fr.isima.entities.KmeanMatrix;
 import fr.isima.fastxrecord.*;
 import fr.isima.fastxrecord.filereaders.*;
 
@@ -21,6 +22,9 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.PairFunction;
 
 import org.apache.hadoop.io.compress.BZip2Codec;
+import org.paukov.combinatorics.Factory;
+import org.paukov.combinatorics.Generator;
+import org.paukov.combinatorics.ICombinatoricsVector;
 
 import scala.Tuple2;
 
@@ -225,6 +229,19 @@ public class SequenceFileManager {
 	{
 		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
 		fqEditor.trimFqRdd(fqrdd, minQuality, windowSize);
+	}
+	
+	
+	public void getAllKMers(JavaSparkContext sc, String folderPath, int nb, String output)
+			throws IOException
+	{
+		KmeanMatrix.init(nb);		
+		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
+		fqEditor.countAllKmers(fqrdd);
+		KmeanMatrix.getInstance().print();
+		
+		
+		   
 	}
 
 }
