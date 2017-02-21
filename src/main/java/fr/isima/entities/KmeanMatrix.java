@@ -128,7 +128,7 @@ public class KmeanMatrix implements Serializable {
 		return gson.toJson(map);
 	}
 	
-	public void exportMatrix(String folderpath){
+	public String exportMatrix(String folderpath){
 		List<String> outputFiles = new ArrayList<String>();
 		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd.HHmmssSSS");
 		Date date = new Date();
@@ -141,7 +141,8 @@ public class KmeanMatrix implements Serializable {
 		for(String str: outputFiles){
 			System.out.println("\t -- " + str);
 		}
-			
+		
+		return folderpath+filename;
 	}
 	
 	public String exportAllMatrixToCSV(String folderpath){
@@ -174,6 +175,7 @@ public class KmeanMatrix implements Serializable {
 		}
 			
 		try {
+			Files.createDirectories(file.getParent());
 			Files.write(file, lines, Charset.forName("UTF-8"));
 		} catch (IOException e) {
 			System.err.println("ERREUR DANS L'EXPORTATION DE LA MATRICE EN CSV");
@@ -191,8 +193,9 @@ public class KmeanMatrix implements Serializable {
 	public String exportDataToLIBSVM(String folderpath, String outputName){
 
 		
-		String filename = folderpath + outputName +".text";
+		String filename = folderpath + outputName +".txt";
 		Path file = Paths.get(filename);
+
 		
 		List<String> lines = new ArrayList<String>();
 		int i = 0;
@@ -209,6 +212,7 @@ public class KmeanMatrix implements Serializable {
 		}
 			
 		try {
+			Files.createDirectories(file.getParent());
 			Files.write(file, lines, Charset.forName("UTF-8"));
 		} catch (IOException e) {
 			System.err.println("ERREUR DANS L'EXPORTATION DE LA MATRICE EN LIBSVM");

@@ -25,17 +25,17 @@ public class HelloSpark {
 		System.out.println(sc.appName());		
 		
 		//System.out.println("Goodbye.");
-		String filePath = "./data/SP1.fq";
-		String folderPath = "./results/SP1.fqrdd";
-		String resultPath = "./results/SP1.fqrdd";
+		String filename = "SP1";
+		String filePath = "./data/"+filename+".fq";
+		String folderPath = "./results/" + filename +".fqrdd";
+		String resultPath = "./results/" + filename +"output";
 		SequenceFileManager fqman = new SequenceFileManager();
 		
 		try {
 			//fqman.readFastqFile(filePath);
-			//fqman.convertFastqToFqrdd(sc,filePath,resultPath);
+			//fqman.convertFastqToFqrdd(sc,filePath,folderPath);
 			//fqman.getFqRDDSatistics(sc,folderPath);
-			fqman.getAllKMers(sc, folderPath, 4, resultPath);
-			//fqman.readFqRDD(sc,"./results/SP1.fqrdd/part-00000");
+			fqman.getKmerKmeansClustering(sc, folderPath, 4, 2,resultPath);
 			//fqman.trimFqRdd(sc, folderPath, 15000, 5);
 			
 		} 

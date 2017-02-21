@@ -13,6 +13,12 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.VoidFunction;
+import org.apache.spark.ml.clustering.KMeans;
+import org.apache.spark.ml.clustering.KMeansModel;
+import org.apache.spark.ml.linalg.Vector;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 
 public class SequenceFileEditor implements Serializable {
 
@@ -167,6 +173,34 @@ public class SequenceFileEditor implements Serializable {
 			}
 		});
 		
+	}
+	
+	public void doKmeansClusterisation(String filepath, int nbClusters){
+		// clusterisation
+		//*
+		SparkSession ss = SparkSession
+			      .builder()
+			      .appName("GettingK-Means")
+			      .getOrCreate();
+		Dataset<Row> dataset = ss.read().format("libsvm").load(filepath);
+		dataset.printSchema();
+		dataset.show();
+		//*
+		// Trains a k-means model.
+		KMeans kmeans = new KMeans().setK(nbClusters).setSeed(1L);
+		KMeansModel model = kmeans.fit(dataset);
+		
+		// Evaluate clustering by computing Within Set Sum of Squared Errors.
+		double WSSSE = model.computeCost(dataset);
+		System.out.println("Within Set Sum of Squared Errors = " + WSSSE);
+
+		// Shows the result.
+		Vector[] centers = (Vector[]) model.clusterCenters();
+		System.out.println("Cluster Centers: ");
+		for (Vector center: centers) {
+		  System.out.println(center);
+		}
+		//*/
 	}
 	
 }
