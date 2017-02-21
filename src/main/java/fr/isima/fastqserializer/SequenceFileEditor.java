@@ -147,13 +147,19 @@ public class SequenceFileEditor implements Serializable {
 		
 		fq.foreach(new VoidFunction<FastqRecord>(){
 			public void call(FastqRecord fq){
-				//System.out.println("-- FqAdding: "+ fq.getSequenceHeader());
-				String sub = fq.getSequenceString();
-				int k = KmeanMatrix.getKeyLength();
+				// getting sequence to be analyzed
+				String sequence = fq.getSequenceString();
+				//getting kmer length
+				int k = KmeanMatrix.getComplexity();
+				
+				// adding the current sequence to the matrix
+				KmeanMatrix.getInstance().addSequence(fq.getSequenceHeader());
+				
+				//counting the different k-mers
 				int i = 0;
-				while(sub.length() - i >= k){
-					String key =sub.substring(i, i+k);
-					KmeanMatrix.getInstance().add(key, fq.getSequenceHeader());
+				while(sequence.length() - i >= k){
+					String kmer = sequence.substring(i, i+k);
+					KmeanMatrix.getInstance().add(fq.getSequenceHeader(), kmer);
 					i++;
 				}
 				

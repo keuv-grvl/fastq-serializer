@@ -245,23 +245,20 @@ public class SequenceFileManager {
 		KmeanMatrix.init(nb);		
 		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
 		fqEditor.countAllKmers(fqrdd);
-		KmeanMatrix.getInstance().print();
+		String filepath = KmeanMatrix.getInstance().exportDataToLIBSVM("./results");
 		
 		// clusterisation
 		//*
-		List<String> jsonData = Arrays.asList(KmeanMatrix.getInstance().toJson());
-		JavaRDD<String> rdd = sc.parallelize(jsonData);
 		SparkSession ss = SparkSession
 			      .builder()
 			      .appName("GettingK-Means")
-			.getOrCreate();
-		Dataset<Row> dataset = ss.read().json(rdd);
-		//Dataset<Row> dataset = ss.read().json("./data/json.txt");
-		//dataset.printSchema();
-		dataset.write().format("com.databricks.spark.csv").save("/results/home.csv");
-		/*
+			      .getOrCreate();
+		Dataset<Row> dataset = ss.read().format("libsvm").load(filepath);
+		dataset.printSchema();
+		dataset.show();
+		//*
 		// Trains a k-means model.
-		KMeans kmeans = new KMeans().setK(nb).setSeed(1L);
+		KMeans kmeans = new KMeans().setK(2).setSeed(1L);
 		KMeansModel model = kmeans.fit(dataset);
 		
 		// Evaluate clustering by computing Within Set Sum of Squared Errors.

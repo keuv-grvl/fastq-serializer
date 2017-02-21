@@ -1,7 +1,18 @@
 package fr.isima.entities;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,7 +26,7 @@ public class KmeanMatrix implements Serializable {
 	
 	private static int complexity = 0;
 	
-	/** map <Kmeans, map<idLecture, nbOcc>> **/
+	/** map <idLecture, map<Kmer, nbOcc>> **/
 	private ConcurrentHashMap<String,
 	ConcurrentHashMap<String,Integer>> map ;
 	
@@ -26,6 +37,7 @@ public class KmeanMatrix implements Serializable {
 	private KmeanMatrix(int k)
 	{
 		map = new ConcurrentHashMap<String, ConcurrentHashMap<String,Integer>>();
+		features  = new ConcurrentHashMap<String, Integer>();
 		/** première version du singleton: instancier la matrice avec tous les k-mers 
 		 * et ensuite rajouter les id de lecture au fur et à mesure de la lecture
 		 * map <Kmeans, map<idLecture, nbOcc>>
@@ -37,13 +49,12 @@ public class KmeanMatrix implements Serializable {
 		   Generator<String> gen = Factory.createPermutationWithRepetitionGenerator(originalVector, k);
 		   
 		   for (ICombinatoricsVector<String> perm : gen){
-			   //System.out.println(perm);
 			   String key = "";
 			   for(int i = 0; i < perm.getSize(); i++)
 				   key+= perm.getValue(i);
 			   
-			   //System.out.println(key);
-			   map.put(key,new ConcurrentHashMap<String, Integer>());
+			   System.out.println(key);
+			   features.put(key,0);
 		   }
 		
 	}
@@ -80,25 +91,29 @@ public class KmeanMatrix implements Serializable {
 		return SingletonHolder.instance;
 	}
 	
-	public static int getKeyLength(){
+	public static int getComplexity(){
 		return complexity;
 	}
 	
-	public void add(String kmer, String seq){
-		int val = 0;
-		
-		if(map.get(kmer).containsKey(seq)){
-			val = map.get(kmer).get(seq);
+	public void addSequence(String seqHeader){
+		if(!map.containsKey(seqHeader)){
+			
+			map.put(seqHeader, new ConcurrentHashMap<String, Integer>(features));
 		}
-		
-		map.get(kmer).put(seq , val+1);
+	}
+	
+	public void add(String seq, String kmer){
+		if(map.containsKey(seq)){
+			int val = map.get(seq).get(kmer);
+			map.get(seq).put(kmer , val+1);
+		}
 	
 	}
 	
 	public void print(){
-		Gson gson = new Gson();
-		System.out.println(gson.toJson(map));
-		/*
+		//Gson gson = new Gson();
+		//System.out.println(gson.toJson(map));
+		//*
 		for(String s : map.keySet()){
 			System.out.println(s);
 			for(String st : map.get(s).keySet()){
@@ -111,6 +126,70 @@ public class KmeanMatrix implements Serializable {
 	public String toJson(){
 		Gson gson = new Gson();
 		return gson.toJson(map);
+	}
+	
+	public void exportAllMatrixToCSV(String folderpath){
+		
+		
+		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd.HHmmssSSS");
+		Date date = new Date();
+		
+		Path file = Paths.get(folderpath + "/KmeansMatrix_" + dateFormat.format(date) + ".csv");
+		
+		List<String> lines = new ArrayList<String>();
+		
+		// header
+		String header = "Sequences;";
+		for(String feat: features.keySet())
+			header+= feat+";";
+		lines.add(header);
+		
+		for(String seq : map.keySet()){
+			String newLine = seq+";";
+			for(String feat:features.keySet()){
+				newLine += map.get(seq).get(feat) +";";
+			}
+			lines.add(newLine);
+		}
+			
+		try {
+			Files.write(file, lines, Charset.forName("UTF-8"));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			System.err.println("ERREUR DANS L'EXPORTATION DE LA MATRICE");
+			e.printStackTrace();
+		}
+	}
+	
+	//return filepath
+	public String exportDataToLIBSVM(String folderpath){
+		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd.HHmmssSSS");
+		Date date = new Date();
+		String filepath = folderpath + "/KmeansMatrix_" + dateFormat.format(date) + ".txt";
+		Path file = Paths.get(filepath);
+		
+		List<String> lines = new ArrayList<String>();
+		int i = 0;
+
+		for(String seq : map.keySet()){
+			int j = 1;
+			String newLine = i+" ";
+			for(String feat:features.keySet()){
+				newLine += j+":"+map.get(seq).get(feat) +" ";
+				j++;
+			}
+			lines.add(newLine);
+			i++;
+		}
+			
+		try {
+			Files.write(file, lines, Charset.forName("UTF-8"));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			System.err.println("ERREUR DANS L'EXPORTATION DE LA MATRICE");
+			e.printStackTrace();
+		}
+		return filepath;
 	}
 	
 	
