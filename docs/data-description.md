@@ -38,9 +38,9 @@ grinder \
 ## Expected clustering results
 
 ``` bash
-echo -e "#seq.id\tcluster.id"
+echo -e "#seq.id\tcluster.id" > data/expected-clustering.tsv
 zcat data/2genomes.fq.gz  \
   | grep "^@"  \
   | perl -pe 's/^@(.+?)\s.+\|(NC_.+)\|.+$/$1\t$2/g'  \
-  | head
+  >> data/expected-clustering.tsv
 ```
