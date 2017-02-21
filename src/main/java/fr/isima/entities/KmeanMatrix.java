@@ -128,13 +128,34 @@ public class KmeanMatrix implements Serializable {
 		return gson.toJson(map);
 	}
 	
-	public void exportAllMatrixToCSV(String folderpath){
+	public void exportMatrix(String folderpath){
+		List<String> outputFiles = new ArrayList<String>();
+		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd.HHmmssSSS");
+		Date date = new Date();
 		
+		String filename = "/KmeansMatrix_" + dateFormat.format(date);
+		outputFiles.add(exportAllMatrixToCSV(folderpath, filename));
+		outputFiles.add(exportDataToLIBSVM(folderpath, filename));
+		
+		System.out.println("Exported Files: ");
+		for(String str: outputFiles){
+			System.out.println("\t -- " + str);
+		}
+			
+	}
+	
+	public String exportAllMatrixToCSV(String folderpath){
 		
 		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd.HHmmssSSS");
 		Date date = new Date();
 		
-		Path file = Paths.get(folderpath + "/KmeansMatrix_" + dateFormat.format(date) + ".csv");
+		return exportAllMatrixToCSV(folderpath,"/KmeansMatrix_" + dateFormat.format(date));
+	}
+	
+	public String exportAllMatrixToCSV(String folderpath,String outputName){		
+		
+		String filename = folderpath + outputName +".csv";
+		Path file = Paths.get(filename);
 		
 		List<String> lines = new ArrayList<String>();
 		
@@ -155,18 +176,23 @@ public class KmeanMatrix implements Serializable {
 		try {
 			Files.write(file, lines, Charset.forName("UTF-8"));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			System.err.println("ERREUR DANS L'EXPORTATION DE LA MATRICE");
+			System.err.println("ERREUR DANS L'EXPORTATION DE LA MATRICE EN CSV");
 			e.printStackTrace();
 		}
+		return filename;
 	}
-	
-	//return filepath
 	public String exportDataToLIBSVM(String folderpath){
 		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd.HHmmssSSS");
 		Date date = new Date();
-		String filepath = folderpath + "/KmeansMatrix_" + dateFormat.format(date) + ".txt";
-		Path file = Paths.get(filepath);
+		
+		return exportDataToLIBSVM(folderpath,"/KmeansMatrix_" + dateFormat.format(date));
+	}
+	
+	public String exportDataToLIBSVM(String folderpath, String outputName){
+
+		
+		String filename = folderpath + outputName +".text";
+		Path file = Paths.get(filename);
 		
 		List<String> lines = new ArrayList<String>();
 		int i = 0;
@@ -185,11 +211,10 @@ public class KmeanMatrix implements Serializable {
 		try {
 			Files.write(file, lines, Charset.forName("UTF-8"));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			System.err.println("ERREUR DANS L'EXPORTATION DE LA MATRICE");
+			System.err.println("ERREUR DANS L'EXPORTATION DE LA MATRICE EN LIBSVM");
 			e.printStackTrace();
 		}
-		return filepath;
+		return filename;
 	}
 	
 	

@@ -151,7 +151,7 @@ public class SequenceFileManager {
 		System.out.println(folderPath);
 		// create new filename filter
         FilenameFilter fileNameFilter = new FilenameFilter() {
-  
+        	
            public boolean accept(File dir, String name) {
               if(name.lastIndexOf('-')>0)
               {
@@ -245,8 +245,8 @@ public class SequenceFileManager {
 		KmeanMatrix.init(nb);		
 		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
 		fqEditor.countAllKmers(fqrdd);
+		//String filepath = KmeanMatrix.getInstance().exportDataToLIBSVM("./results");
 		String filepath = KmeanMatrix.getInstance().exportDataToLIBSVM("./results");
-		
 		// clusterisation
 		//*
 		SparkSession ss = SparkSession
