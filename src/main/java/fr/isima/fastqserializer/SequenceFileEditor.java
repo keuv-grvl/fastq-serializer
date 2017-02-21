@@ -144,6 +144,7 @@ public class SequenceFileEditor implements Serializable {
 	}
 	
 	public void countAllKmers(JavaRDD<FastqRecord> fq){
+		
 		fq.foreach(new VoidFunction<FastqRecord>(){
 			public void call(FastqRecord fq){
 				//System.out.println("-- FqAdding: "+ fq.getSequenceHeader());

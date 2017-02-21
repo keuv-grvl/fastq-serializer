@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
 
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
@@ -20,7 +22,12 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.PairFunction;
-
+import org.apache.spark.ml.clustering.KMeans;
+import org.apache.spark.ml.clustering.KMeansModel;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.ml.linalg.Vector;
+import org.apache.spark.sql.SparkSession;
 import org.apache.hadoop.io.compress.BZip2Codec;
 import org.paukov.combinatorics.Factory;
 import org.paukov.combinatorics.Generator;
@@ -240,6 +247,34 @@ public class SequenceFileManager {
 		fqEditor.countAllKmers(fqrdd);
 		KmeanMatrix.getInstance().print();
 		
+		// clusterisation
+		//*
+		List<String> jsonData = Arrays.asList(KmeanMatrix.getInstance().toJson());
+		JavaRDD<String> rdd = sc.parallelize(jsonData);
+		SparkSession ss = SparkSession
+			      .builder()
+			      .appName("GettingK-Means")
+			.getOrCreate();
+		Dataset<Row> dataset = ss.read().json(rdd);
+		//Dataset<Row> dataset = ss.read().json("./data/json.txt");
+		//dataset.printSchema();
+		dataset.write().format("com.databricks.spark.csv").save("/results/home.csv");
+		/*
+		// Trains a k-means model.
+		KMeans kmeans = new KMeans().setK(nb).setSeed(1L);
+		KMeansModel model = kmeans.fit(dataset);
+		
+		// Evaluate clustering by computing Within Set Sum of Squared Errors.
+		double WSSSE = model.computeCost(dataset);
+		System.out.println("Within Set Sum of Squared Errors = " + WSSSE);
+
+		// Shows the result.
+		Vector[] centers = (Vector[]) model.clusterCenters();
+		System.out.println("Cluster Centers: ");
+		for (Vector center: centers) {
+		  System.out.println(center);
+		}
+		//*/
 		
 		   
 	}

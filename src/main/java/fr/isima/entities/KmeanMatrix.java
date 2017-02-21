@@ -1,12 +1,15 @@
 package fr.isima.entities;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.paukov.combinatorics.Factory;
 import org.paukov.combinatorics.Generator;
 import org.paukov.combinatorics.ICombinatoricsVector;
+
+import com.google.gson.Gson;
 
 public class KmeanMatrix implements Serializable {
 	
@@ -16,10 +19,18 @@ public class KmeanMatrix implements Serializable {
 	private ConcurrentHashMap<String,
 	ConcurrentHashMap<String,Integer>> map ;
 	
+	/** Features: ensemble des kmer que l'on recherche **/
+	ConcurrentHashMap<String,Integer> features;
+	
 	/** Constructeur privé */	
 	private KmeanMatrix(int k)
 	{
 		map = new ConcurrentHashMap<String, ConcurrentHashMap<String,Integer>>();
+		/** première version du singleton: instancier la matrice avec tous les k-mers 
+		 * et ensuite rajouter les id de lecture au fur et à mesure de la lecture
+		 * map <Kmeans, map<idLecture, nbOcc>>
+		 * afin de pouvoir avoir ts les kmer possible et éviter un if sur la partie d'ajout
+		 */
 		
 		// Create an initial vector of 5 elements (A, T,G,C,N)
 		   ICombinatoricsVector<String> originalVector = Factory.createVector(new String[] { "A","T","G","C","N" });
@@ -31,7 +42,7 @@ public class KmeanMatrix implements Serializable {
 			   for(int i = 0; i < perm.getSize(); i++)
 				   key+= perm.getValue(i);
 			   
-			   System.out.println(key);
+			   //System.out.println(key);
 			   map.put(key,new ConcurrentHashMap<String, Integer>());
 		   }
 		
@@ -54,11 +65,11 @@ public class KmeanMatrix implements Serializable {
 	/** afin d'initialiser notre matrice avec un nombre de k-mer **/
 	public static KmeanMatrix init(int k){
 		if(complexity != 0){
-			System.out.println("INSTANCES = 1");
+			//System.out.println("INSTANCES = 1");
 			return null;
 		}
 		else{
-			System.out.println("INSTANCES = 0");
+			//System.out.println("INSTANCES = 0");
 			complexity = k;
 			return getInstance();
 		}
@@ -85,7 +96,8 @@ public class KmeanMatrix implements Serializable {
 	}
 	
 	public void print(){
-		System.out.println(map.toString());
+		Gson gson = new Gson();
+		System.out.println(gson.toJson(map));
 		/*
 		for(String s : map.keySet()){
 			System.out.println(s);
@@ -94,6 +106,11 @@ public class KmeanMatrix implements Serializable {
 			}
 		}
 		//*/
+	}
+	
+	public String toJson(){
+		Gson gson = new Gson();
+		return gson.toJson(map);
 	}
 	
 	
