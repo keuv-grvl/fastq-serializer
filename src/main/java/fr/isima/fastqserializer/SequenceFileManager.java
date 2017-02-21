@@ -151,7 +151,7 @@ public class SequenceFileManager {
 		System.out.println(folderPath);
 		// create new filename filter
         FilenameFilter fileNameFilter = new FilenameFilter() {
-  
+        	
            public boolean accept(File dir, String name) {
               if(name.lastIndexOf('-')>0)
               {
@@ -238,41 +238,27 @@ public class SequenceFileManager {
 		fqEditor.trimFqRdd(fqrdd, minQuality, windowSize);
 	}
 	
-	
-	public void getAllKMers(JavaSparkContext sc, String folderPath, int nb, String output)
-			throws IOException
-	{
+	public void extractKmersFromFqRDD(JavaSparkContext sc, String folderPath, int nb, String outputPath) 
+			throws IOException{
 		KmeanMatrix.init(nb);		
 		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
 		fqEditor.countAllKmers(fqrdd);
-		String filepath = KmeanMatrix.getInstance().exportDataToLIBSVM("./results");
 		
-		// clusterisation
-		//*
-		SparkSession ss = SparkSession
-			      .builder()
-			      .appName("GettingK-Means")
-			      .getOrCreate();
-		Dataset<Row> dataset = ss.read().format("libsvm").load(filepath);
-		dataset.printSchema();
-		dataset.show();
-		//*
-		// Trains a k-means model.
-		KMeans kmeans = new KMeans().setK(2).setSeed(1L);
-		KMeansModel model = kmeans.fit(dataset);
+		KmeanMatrix.getInstance().exportMatrix(outputPath);
 		
-		// Evaluate clustering by computing Within Set Sum of Squared Errors.
-		double WSSSE = model.computeCost(dataset);
-		System.out.println("Within Set Sum of Squared Errors = " + WSSSE);
+	}
+	
+	public void getKmerKmeansClustering(JavaSparkContext sc, String folderPath, int order, int nbClusters, String outputPath)
+			throws IOException
+	{
+		KmeanMatrix.init(order);		
+		JavaRDD<FastqRecord> fqrdd = readFqRDDFolder(sc,folderPath);
+		fqEditor.countAllKmers(fqrdd);
 
-		// Shows the result.
-		Vector[] centers = (Vector[]) model.clusterCenters();
-		System.out.println("Cluster Centers: ");
-		for (Vector center: centers) {
-		  System.out.println(center);
-		}
-		//*/
+		String filepath = KmeanMatrix.getInstance().exportDataToLIBSVM(outputPath);
+		System.out.println("FilePAth:"+filepath);
 		
+		fqEditor.doKmeansClusterisation(filepath, nbClusters);		
 		   
 	}
 
